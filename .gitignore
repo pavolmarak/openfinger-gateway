@@ -52,6 +52,5 @@ compile_commands.json
 *creator.user*
 
 openfinger-gateway
-!users/.keep
 users/**
-
+!users/.keep
