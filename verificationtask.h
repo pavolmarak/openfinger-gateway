@@ -7,6 +7,8 @@
 #include "Fingerprint.pb.h"
 #include "VerificationRequest.pb.h"
 #include "VerificationResponse.pb.h"
+#include "VerificationRequestOlejarnikova.pb.h"
+#include "VerificationResponseOlejarnikova.pb.h"
 #include "Wrapper.pb.h"
 #include "preprocessing.h"
 #include "extraction.h"
@@ -18,32 +20,39 @@ class VerificationTask : public QObject
 public:
     explicit VerificationTask(QObject *parent = nullptr);
 
-    void start();
-    QVector<MINUTIA>& preprocess_and_extract(const cv::Mat &img);
+    void startRemoteDB();
+    void startLocalDB();
+    QVector<MINUTIA> &preprocess_and_extract(const cv::Mat &img);
     void waitForPreprocessingComplete();
     void waitForExtractionComplete();
 
     QVector<MINUTIA> convertProtoLevel2ToOpenFingerLevel2(const OpenFinger::Level2Vector& level2vector);
+    QVector<QVector<MINUTIA>> getLevel2VectorsFromLocalDB(const QString& login);
 
     QEventLoop loop;
     Preprocessing preprocessor;
     Extraction extractor;
-    Matcher matcher;
+    Matcher matcher_remote_db, matcher_local_db;
 
     bool is_preprocessing_done;
     bool is_extraction_done;
     PREPROCESSING_ALL_RESULTS preproc_results_all;
     QVector<MINUTIA> extract_result;
 
-    OpenFinger::VerificationRequest request;
-    OpenFinger::VerificationResponse response;
+    OpenFinger::VerificationRequest requestRemoteDB;
+    OpenFinger::VerificationResponse responseRemoteDB;
+    OpenFinger::VerificationRequestOlejarnikova requestLocalDB;
+    OpenFinger::VerificationResponseOlejarnikova responseLocalDB;
     QTcpSocket *socket;
 private slots:
     void preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS);
     void extractionDoneSlot(QVector<MINUTIA>);
-    void verificationDoneSlot(bool, float score);
+    void verificationDoneRemoteSlot(bool, float score);
+    void verificationDoneLocalSlot(bool, float score);
 signals:
-    void verificationResponseReady(OpenFinger::VerificationResponse&, QTcpSocket *);
+    void verificationResponseReady(OpenFinger::VerificationResponse, QTcpSocket *);
+    void verificationResponseReady(OpenFinger::VerificationResponseOlejarnikova, QTcpSocket *);
+
     void preprocessingComplete();
     void extractionComplete();
 

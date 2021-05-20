@@ -22,7 +22,9 @@ SOURCES += \
         ../openfinger-proto/cpp/RegistrationRequest.pb.cc \
         ../openfinger-proto/cpp/RegistrationResponse.pb.cc \
         ../openfinger-proto/cpp/VerificationRequest.pb.cc \
+        ../openfinger-proto/cpp/VerificationRequestOlejarnikova.pb.cc \
         ../openfinger-proto/cpp/VerificationResponse.pb.cc \
+        ../openfinger-proto/cpp/VerificationResponseOlejarnikova.pb.cc \
         ../openfinger-proto/cpp/Wrapper.pb.cc \
         extractiontask.cpp \
         identificationtask.cpp \
@@ -50,7 +52,9 @@ HEADERS += \
     ../openfinger-proto/cpp/RegistrationRequest.pb.h \
     ../openfinger-proto/cpp/RegistrationResponse.pb.h \
     ../openfinger-proto/cpp/VerificationRequest.pb.h \
+    ../openfinger-proto/cpp/VerificationRequestOlejarnikova.pb.h \
     ../openfinger-proto/cpp/VerificationResponse.pb.h \
+    ../openfinger-proto/cpp/VerificationResponseOlejarnikova.pb.h \
     ../openfinger-proto/cpp/Wrapper.pb.h \
     extractiontask.h \
     identificationtask.h \

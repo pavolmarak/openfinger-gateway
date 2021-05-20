@@ -18,6 +18,8 @@
 #include "RegistrationResponse.pb.h"
 #include "VerificationRequest.pb.h"
 #include "VerificationResponse.pb.h"
+#include "VerificationRequestOlejarnikova.pb.h"
+#include "VerificationResponseOlejarnikova.pb.h"
 #include "IdentificationRequest.pb.h"
 #include "IdentificationResponse.pb.h"
 
@@ -51,7 +53,8 @@ private:
 
     void handlePreprocessingRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
     void handleExtractionRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
-    void handleVerificationRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
+    void handleVerificationRequestRemoteDB(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
+    void handleVerificationRequestLocalDB(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
     void handleRegistrationRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
     void handleIdentificationRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
 
@@ -64,7 +67,8 @@ private slots:
     void errorOccurredSlot(QAbstractSocket::SocketError);
     void preprocessingResponseReadySlot(OpenFinger::PreprocessingResponse& response, QTcpSocket * socket);
     void extractionResponseReadySlot(OpenFinger::ExtractionResponse& response, QTcpSocket * socket);
-    void verificationResponseReadySlot(OpenFinger::VerificationResponse& response, QTcpSocket * socket);
+    void verificationResponseReadySlot(OpenFinger::VerificationResponse response, QTcpSocket * socket);
+    void verificationResponseReadySlot(OpenFinger::VerificationResponseOlejarnikova response, QTcpSocket * socket);
     void registrationResponseReadySlot(OpenFinger::RegistrationResponse& response, QTcpSocket * socket);
     void identificationResponseReadySlot(OpenFinger::IdentificationResponse& response, QTcpSocket * socket);
 

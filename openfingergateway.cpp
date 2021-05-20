@@ -22,9 +22,14 @@ OpenFingerGateway::OpenFingerGateway(QString host, quint16 port){
                 &OpenFingerGateway::extractionResponseReadySlot);
 
     connect(    &(this->verify_task),
-                &VerificationTask::verificationResponseReady,
+                qOverload<OpenFinger::VerificationResponse, QTcpSocket *>(&VerificationTask::verificationResponseReady),
                 this,
-                &OpenFingerGateway::verificationResponseReadySlot);
+                qOverload<OpenFinger::VerificationResponse, QTcpSocket *>(&OpenFingerGateway::verificationResponseReadySlot));
+
+    connect(    &(this->verify_task),
+                qOverload<OpenFinger::VerificationResponseOlejarnikova, QTcpSocket *>(&VerificationTask::verificationResponseReady),
+                this,
+                qOverload<OpenFinger::VerificationResponseOlejarnikova, QTcpSocket *>(&OpenFingerGateway::verificationResponseReadySlot));
 
     connect(    &(this->register_task),
                 &RegistrationTask::registrationResponseReady,
@@ -114,9 +119,14 @@ void OpenFingerGateway::readyReadSlot()
         case OpenFinger::Wrapper::kExtractResponse:
             break;
         case OpenFinger::Wrapper::kVerifyRequest:
-            handleVerificationRequest(wrap, sender_socket, data);
+            handleVerificationRequestRemoteDB(wrap, sender_socket, data);
             break;
         case OpenFinger::Wrapper::kVerifyResponse:
+            break;
+        case OpenFinger::Wrapper::kVerifyRequestOlejarnikova:
+            handleVerificationRequestLocalDB(wrap, sender_socket, data);
+            break;
+        case OpenFinger::Wrapper::kVerifyResponseOlejarnikova:
             break;
         case OpenFinger::Wrapper::kIdentifyRequest:
             handleIdentificationRequest(wrap, sender_socket, data);
@@ -175,27 +185,50 @@ void OpenFingerGateway::handleExtractionRequest(OpenFinger::Wrapper& wrap, QTcpS
     this->extract_task.start();
 }
 
-void OpenFingerGateway::handleVerificationRequest(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
+void OpenFingerGateway::handleVerificationRequestRemoteDB(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
 {
-    this->verify_task.request = wrap.verify_request();
+    this->verify_task.requestRemoteDB = wrap.verify_request();
     this->verify_task.socket = socket;
 
     qDebug() << "Server" << socket
-             << ": verification request received, size:" << data.size() << "bytes";
+             << ": verification (remote DB) request received, size:" << data.size() << "bytes";
     qDebug() << "Server" << socket
              << ": image to be processed:"
-             << this->verify_task.request.fingerprint().width() << "(W)"
-             << this->verify_task.request.fingerprint().height() << "(H)"
-             << this->verify_task.request.fingerprint().resolution() << "(ppi)"
-             << this->verify_task.request.fingerprint().color() << "(0-grayscale, 1-rgb)"
-             << this->verify_task.request.fingerprint().data().size() << "bytes";
+             << this->verify_task.requestRemoteDB.fingerprint().width() << "(W)"
+             << this->verify_task.requestRemoteDB.fingerprint().height() << "(H)"
+             << this->verify_task.requestRemoteDB.fingerprint().resolution() << "(ppi)"
+             << this->verify_task.requestRemoteDB.fingerprint().color() << "(0-grayscale, 1-rgb)"
+             << this->verify_task.requestRemoteDB.fingerprint().data().size() << "bytes";
     qDebug() << "Server" << socket
              << ": number of Level-2 vectors to match is:"
-             << this->verify_task.request.level2vectors_size();
+             << this->verify_task.requestRemoteDB.level2vectors_size();
     qDebug() << "Server" << socket
              << ": verification request processing started.";
 
-    this->verify_task.start();
+    this->verify_task.startRemoteDB();
+}
+
+void OpenFingerGateway::handleVerificationRequestLocalDB(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
+{
+    this->verify_task.requestLocalDB = wrap.verify_request_olejarnikova();
+    this->verify_task.socket = socket;
+
+    qDebug() << "Server" << socket
+             << ": verification (local DB) request received, size:" << data.size() << "bytes";
+    qDebug() << "Server" << socket
+             << ": image to be processed:"
+             << this->verify_task.requestLocalDB.fingerprint().width() << "(W)"
+             << this->verify_task.requestLocalDB.fingerprint().height() << "(H)"
+             << this->verify_task.requestLocalDB.fingerprint().resolution() << "(ppi)"
+             << this->verify_task.requestLocalDB.fingerprint().color() << "(0-grayscale, 1-rgb)"
+             << this->verify_task.requestLocalDB.fingerprint().data().size() << "bytes";
+    qDebug() << "Server" << socket
+             << ": claimed identity is:"
+             << this->verify_task.requestLocalDB.login().data();
+    qDebug() << "Server" << socket
+             << ": verification request processing started.";
+
+    this->verify_task.startLocalDB();
 }
 
 void OpenFingerGateway::handleIdentificationRequest(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
@@ -273,10 +306,11 @@ void OpenFingerGateway::extractionResponseReadySlot(OpenFinger::ExtractionRespon
     qDebug()   << "Server" << socket
                << ": extraction response sent ("
                << socket->write(QByteArray::fromStdString(str))
-               << "B)";
+               << "B) ..." << resp->level2vector().level2vector_size()
+               << "Level-2 features extracted.";
 }
 
-void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationResponse &response, QTcpSocket *socket)
+void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationResponse response, QTcpSocket *socket)
 {
     std::string str;
     OpenFinger::Wrapper wrap;
@@ -285,11 +319,33 @@ void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationRe
     *resp = response;
     wrap.SerializeToString(&str);
     qDebug()   << "Server" << socket
-               << ": verification request processed successfully.";
+               << ": verification (remote DB) request processed successfully.";
     qDebug()   << "Server" << socket
                << ": verification response sent ("
                << socket->write(QByteArray::fromStdString(str))
-               << "B)";
+               << "B) ... result:"
+               << resp->result()
+               << ", score:"
+               << resp->score();
+}
+
+void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationResponseOlejarnikova response, QTcpSocket *socket)
+{
+    std::string str;
+    OpenFinger::Wrapper wrap;
+    wrap.set_header(OpenFinger::Wrapper_Header_VERIFICATION_RESPONSE_OLEJARNIKOVA);
+    OpenFinger::VerificationResponseOlejarnikova * resp = wrap.mutable_verify_response_olejarnikova();
+    *resp = response;
+    wrap.SerializeToString(&str);
+    qDebug()   << "Server" << socket
+               << ": verification (local DB) request processed successfully.";
+    qDebug()   << "Server" << socket
+               << ": verification response sent ("
+               << socket->write(QByteArray::fromStdString(str))
+               << "B) ... success:"
+               << resp->success()
+               << ", score:"
+               << resp->score();
 }
 
 void OpenFingerGateway::identificationResponseReadySlot(OpenFinger::IdentificationResponse &response, QTcpSocket *socket)
@@ -305,7 +361,10 @@ void OpenFingerGateway::identificationResponseReadySlot(OpenFinger::Identificati
     qDebug()   << "Server" << socket
                << ": identification response sent ("
                << socket->write(QByteArray::fromStdString(str))
-               << "B)";
+               << "B) ... success:"
+               << resp->success()
+               << ", fingerprint ID:"
+               << resp->fingerprint_id();
 }
 
 void OpenFingerGateway::registrationResponseReadySlot(OpenFinger::RegistrationResponse &response, QTcpSocket *socket)
