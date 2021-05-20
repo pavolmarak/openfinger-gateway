@@ -160,6 +160,11 @@ void OpenFingerGateway::handlePreprocessingRequest(OpenFinger::Wrapper& wrap, QT
              << this->preproc_task.request.fingerprint().color() << "(0-grayscale, 1-rgb)"
              << this->preproc_task.request.fingerprint().data().size() << "bytes";
     qDebug() << "Server" << socket
+             << ": preprocessing params:"
+             << "\nblock_size:" << this->preproc_task.request.params().block_size()
+             << "\ngabor_lambda:" << this->preproc_task.request.params().gabor_lambda()
+             << "\ngabor_sigma:" << this->preproc_task.request.params().gabor_sigma();
+    qDebug() << "Server" << socket
              << ": preprocessing request processing started.";
 
     this->preproc_task.start();

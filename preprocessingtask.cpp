@@ -26,8 +26,15 @@ void PreprocessingTask::start()
     this->preprocessor.setCPUOnly(true);
     this->preprocessor.loadInput(input_img);
     this->preprocessor.setFeatures(true);
+    if(this->request.params().block_size()%2 == 0){
+        this->request.mutable_params()->set_block_size(this->request.params().block_size()+1);
+    }
+    this->preprocessor.setPreprocessingParams(
+                this->request.params().block_size()<=0 ? 13 : this->request.params().block_size(),
+                this->request.params().gabor_lambda()<=0 ? 9 : this->request.params().gabor_lambda(),
+                this->request.params().gabor_sigma()<=0 ? 3 : this->request.params().gabor_sigma()
+                );
     this->preprocessor.start();
-
 }
 
 void PreprocessingTask::preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS results)
