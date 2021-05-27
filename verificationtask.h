@@ -20,8 +20,8 @@ class VerificationTask : public QObject
 public:
     explicit VerificationTask(QObject *parent = nullptr);
 
-    void startRemoteDB();
-    void startLocalDB();
+    void startRemoteDB(const QString &local_hostname);
+    void startLocalDB(const QString &local_hostname);
     QVector<MINUTIA> &preprocess_and_extract(const cv::Mat &img);
     void waitForPreprocessingComplete();
     void waitForExtractionComplete();

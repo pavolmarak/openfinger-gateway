@@ -18,7 +18,7 @@ class IdentificationTask : public QObject
 public:
     explicit IdentificationTask(QObject *parent = nullptr);
 
-    void start();
+    void start(const QString &local_hostname);
     QVector<MINUTIA>& preprocess_and_extract(const cv::Mat &img);
     void waitForPreprocessingComplete();
     void waitForExtractionComplete();

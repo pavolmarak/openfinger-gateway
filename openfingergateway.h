@@ -42,6 +42,7 @@ public:
     explicit OpenFingerGateway(QObject *parent = nullptr);
     OpenFingerGateway(QString host, quint16 port);
 private:
+    QString host;
     QTcpServer server;
     QMap<QTcpSocket*,QByteArray> server_sockets;
 

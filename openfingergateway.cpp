@@ -6,6 +6,9 @@ OpenFingerGateway::OpenFingerGateway(QObject *parent) : QObject(parent)
 }
 
 OpenFingerGateway::OpenFingerGateway(QString host, quint16 port){
+    this->host = host;
+    this->host = "suprema";
+
     connect(    &(this->server),
                 &QTcpServer::newConnection,
                 this,
@@ -210,7 +213,7 @@ void OpenFingerGateway::handleVerificationRequestRemoteDB(OpenFinger::Wrapper &w
     qDebug() << "Server" << socket
              << ": verification request processing started.";
 
-    this->verify_task.startRemoteDB();
+    this->verify_task.startRemoteDB(this->host);
 }
 
 void OpenFingerGateway::handleVerificationRequestLocalDB(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
@@ -233,7 +236,7 @@ void OpenFingerGateway::handleVerificationRequestLocalDB(OpenFinger::Wrapper &wr
     qDebug() << "Server" << socket
              << ": verification request processing started.";
 
-    this->verify_task.startLocalDB();
+    this->verify_task.startLocalDB(this->host);
 }
 
 void OpenFingerGateway::handleIdentificationRequest(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
@@ -256,7 +259,7 @@ void OpenFingerGateway::handleIdentificationRequest(OpenFinger::Wrapper &wrap, Q
     qDebug() << "Server" << socket
              << ": identification request processing started.";
 
-    this->identify_task.start();
+    this->identify_task.start(this->host);
 }
 
 void OpenFingerGateway::handleRegistrationRequest(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)

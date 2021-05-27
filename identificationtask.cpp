@@ -1,4 +1,5 @@
 #include <QMultiMap>
+#include <QHostInfo>
 #include "identificationtask.h"
 
 IdentificationTask::IdentificationTask(QObject *parent) : QObject(parent)
@@ -32,7 +33,7 @@ IdentificationTask::IdentificationTask(QObject *parent) : QObject(parent)
     this->is_extraction_done = false;
 }
 
-void IdentificationTask::start()
+void IdentificationTask::start(const QString& local_hostname)
 {
     // 1. extract Level-2 vector of fingerprint
     cv::Mat img(  this->request.fingerprint().height(),
@@ -59,10 +60,14 @@ void IdentificationTask::start()
     }
 
     // 3. match vector against all vectors in request
-
-    this->matcher.setMatcher(MATCHER::bozorth3);
-    //this->matcher.setBozorthThreshold(50);
-    //this->matcher.setSupremaThreshold(0.10);
+    if(local_hostname.compare("127.0.0.1") == 0){
+        this->matcher.setMatcher(MATCHER::bozorth3);
+        //this->matcher.setBozorthThreshold(50);
+    }
+    else{
+        this->matcher.setMatcher(MATCHER::suprema);
+        this->matcher.setSupremaThreshold(0.10);
+    }
     this->matcher.identify(img_level2vector,map);
 }
 

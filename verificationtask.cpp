@@ -1,5 +1,7 @@
-#include "verificationtask.h"
 #include <QDir>
+#include <QHostInfo>
+#include "verificationtask.h"
+
 
 VerificationTask::VerificationTask(QObject *parent) : QObject(parent)
 {
@@ -37,7 +39,7 @@ VerificationTask::VerificationTask(QObject *parent) : QObject(parent)
     this->is_extraction_done = false;
 }
 
-void VerificationTask::startRemoteDB()
+void VerificationTask::startRemoteDB(const QString &local_hostname)
 {
     // 1. extract Level-2 vector of fingerprint
     cv::Mat img(  this->requestRemoteDB.fingerprint().height(),
@@ -62,14 +64,18 @@ void VerificationTask::startRemoteDB()
     }
 
     // 3. match vector against all vectors in request
-
-    this->matcher_remote_db.setMatcher(MATCHER::bozorth3);
-    //this->matcher.setBozorthThreshold(50);
-    //this->matcher.setSupremaThreshold(0.10);
+    if(local_hostname.compare("127.0.0.1") == 0){
+        this->matcher_remote_db.setMatcher(MATCHER::bozorth3);
+        //this->matcher_remote_db.setBozorthThreshold(50);
+    }
+    else{
+        this->matcher_remote_db.setMatcher(MATCHER::suprema);
+        this->matcher_remote_db.setSupremaThreshold(0.10);
+    }
     this->matcher_remote_db.verify(img_level2vector,subjects_level2vectors);
 }
 
-void VerificationTask::startLocalDB()
+void VerificationTask::startLocalDB(const QString& local_hostname)
 {
     // 1. extract Level-2 vector of fingerprint
     cv::Mat img(  this->requestLocalDB.fingerprint().height(),
@@ -98,10 +104,15 @@ void VerificationTask::startLocalDB()
     }
 
     // 3. match vector against all vectors of requested user
+    if(local_hostname.compare("127.0.0.1") == 0){
+        this->matcher_local_db.setMatcher(MATCHER::bozorth3);
+        //this->matcher_local_db.setBozorthThreshold(50);
+    }
+    else{
+        this->matcher_local_db.setMatcher(MATCHER::suprema);
+        this->matcher_local_db.setSupremaThreshold(0.10);
+    }
 
-    this->matcher_local_db.setMatcher(MATCHER::bozorth3);
-    //this->matcher.setBozorthThreshold(50);
-    //this->matcher.setSupremaThreshold(0.10);
     this->matcher_local_db.verify(img_level2vector,subjects_level2vectors);
 }
 
