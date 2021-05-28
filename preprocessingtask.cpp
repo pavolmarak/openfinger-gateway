@@ -37,16 +37,67 @@ void PreprocessingTask::start()
     this->preprocessor.start();
 }
 
+void PreprocessingTask::cvMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp, bool is_color = false)
+{
+    fp->set_width(mat.cols);
+    fp->set_height(mat.rows);
+    fp->set_resolution(500);
+    if(is_color){
+        fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_RGB);
+    }
+    else{
+        fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_GRAYSCALE);
+    }
+    fp->set_data((const char*)mat.data, mat.total() * mat.elemSize());
+}
+
 void PreprocessingTask::preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS results)
 {
     this->response.clear_results();
-    OpenFinger::Fingerprint *fp = this->response.add_results();
-    cv::Mat resp_img = results.imgSkeleton;
-    fp->set_width(resp_img.cols);
-    fp->set_height(resp_img.rows);
-    fp->set_resolution(500);
-    fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_GRAYSCALE);
-    fp->set_data((const char*)resp_img.data, resp_img.total() * resp_img.elemSize());
+    OpenFinger::PreprocessingResult *result = nullptr;
+    cv::Mat resp_img;
+
+    // imgQualityMap
+    resp_img = results.imgQualityMap;
+    result = this->response.add_results();
+    result->mutable_info()->clear();
+    result->mutable_info()->append("Fingerprint image quality map.");
+    this->cvMatToProtoFingerprint(resp_img,result->mutable_fingerprint());
+
+    // imgContrastEnhanced
+    resp_img = results.imgContrastEnhanced;
+    result = this->response.add_results();
+    result->mutable_info()->clear();
+    result->mutable_info()->append("Fingerprint image after contrast enhancement.");
+    this->cvMatToProtoFingerprint(resp_img,result->mutable_fingerprint());
+
+    // imgOrientationMap
+    resp_img = results.imgOrientationMap;
+    result = this->response.add_results();
+    result->mutable_info()->clear();
+    result->mutable_info()->append("Fingerprint image orientation map.");
+    this->cvMatToProtoFingerprint(resp_img,result->mutable_fingerprint(), true);
+
+    // imgEnhanced
+    resp_img = results.imgEnhanced;
+    result = this->response.add_results();
+    result->mutable_info()->clear();
+    result->mutable_info()->append("Fingerprint image after Gabor filter enhancement.");
+    this->cvMatToProtoFingerprint(resp_img,result->mutable_fingerprint());
+
+    // imgBinarized
+    resp_img = results.imgBinarized;
+    result = this->response.add_results();
+    result->mutable_info()->clear();
+    result->mutable_info()->append("Fingerprint image after binarization.");
+    this->cvMatToProtoFingerprint(resp_img,result->mutable_fingerprint());
+
+    // imgSkeleton
+    resp_img = results.imgSkeleton;
+    result = this->response.add_results();
+    result->mutable_info()->clear();
+    result->mutable_info()->append("Fingerprint image skeleton.");
+    this->cvMatToProtoFingerprint(resp_img,result->mutable_fingerprint());
 
     emit preprocessingResponseReady(this->response, this->socket);
 }

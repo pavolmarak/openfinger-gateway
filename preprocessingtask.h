@@ -16,6 +16,7 @@ class PreprocessingTask : public QObject
 public:
     explicit PreprocessingTask(QObject *parent = nullptr);
     void start();
+    void cvMatToProtoFingerprint(cv::Mat& mat, OpenFinger::Fingerprint *fp, bool is_color);
 
     Preprocessing preprocessor;
     OpenFinger::PreprocessingRequest request;

@@ -7,7 +7,7 @@ OpenFingerGateway::OpenFingerGateway(QObject *parent) : QObject(parent)
 
 OpenFingerGateway::OpenFingerGateway(QString host, quint16 port){
     this->host = host;
-    this->host = "suprema";
+    //this->host = "suprema";
 
     connect(    &(this->server),
                 &QTcpServer::newConnection,
@@ -298,7 +298,9 @@ void OpenFingerGateway::preprocessingResponseReadySlot(OpenFinger::Preprocessing
     qDebug()   << "Server" << socket
                << ": preprocessing response sent ("
                 << socket->write(QByteArray::fromStdString(str))
-                << "B)";
+                << "B) ..."
+                << "response contains" << resp->results_size()
+                << "images";
 }
 
 void OpenFingerGateway::extractionResponseReadySlot(OpenFinger::ExtractionResponse &response, QTcpSocket *socket)
