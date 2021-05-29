@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include <QEventLoop>
 #include "Fingerprint.pb.h"
 #include "ExtractionRequest.pb.h"
 #include "ExtractionResponse.pb.h"
@@ -16,6 +17,11 @@ class ExtractionTask : public QObject
 public:
     explicit ExtractionTask(QObject *parent = nullptr);
     void start();
+    void preprocess_and_extract(cv::Mat&);
+    void setProtoFingerprint(OpenFinger::Fingerprint *fp, cv::Mat &img);
+
+    void waitForPreprocessingComplete();
+    void waitForExtractionComplete();
 
     Preprocessing preprocessor;
     Extraction extractor;
@@ -23,14 +29,24 @@ public:
     OpenFinger::ExtractionRequest request;
     OpenFinger::ExtractionResponse response;
     QTcpSocket *socket;
+    PREPROCESSING_ALL_RESULTS preproc_results_all;
+    QVector<MINUTIA> extract_result;
+    cv::Mat extract_image;
+    QEventLoop loop;
+    bool is_preprocessing_done;
+    bool is_extraction_done;
+    bool is_extraction_image_done;
 
 private slots:
     void preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS);
     void extractionDoneSlot(QVector<MINUTIA>);
+    void extractionDoneSlot(cv::Mat);
 
 signals:
      void extractionResponseReady(OpenFinger::ExtractionResponse&, QTcpSocket *);
-
+     void preprocessingComplete();
+     void extractionComplete();
+     void extractionImageComplete();
 };
 
 #endif // EXTRACTIONTASK_H
