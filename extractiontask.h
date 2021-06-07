@@ -18,7 +18,7 @@ public:
     explicit ExtractionTask(QObject *parent = nullptr);
     void start();
     void preprocess_and_extract(cv::Mat&);
-    void setProtoFingerprint(OpenFinger::Fingerprint *fp, cv::Mat &img);
+    void cvColorMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp);
 
     void waitForPreprocessingComplete();
     void waitForExtractionComplete();
