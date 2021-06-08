@@ -68,7 +68,7 @@ void ExtractionTask::start()
 
     // set extraction image
     this->response.clear_extraction_image();
-    this->cvColorMatToProtoFingerprint(this->extract_image,this->response.mutable_extraction_image());
+    this->cvMatToProtoFingerprint(this->extract_image,this->response.mutable_extraction_image(),true);
 
     emit extractionResponseReady(this->response,this->socket);
 }
@@ -141,25 +141,22 @@ void ExtractionTask::waitForExtractionComplete()
 }
 
 
-void ExtractionTask::cvColorMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp)
+void ExtractionTask::cvMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp, bool is_color = false)
 {
     if(mat.empty()){
         qDebug() << "Server: invalid extraction image";
         return;
     }
+
     fp->set_width(mat.cols);
     fp->set_height(mat.rows);
     fp->set_resolution(500);
-    fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_RGB);
-    uchar * rgb_data = new uchar[3*mat.cols*mat.rows];
-    int cnt=0;
-    for(int i=0; i<mat.rows;i++){
-        for(int j=0; j<mat.cols;j++){
-            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[2]; // R
-            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[1]; // G
-            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[0]; // B
-        }
+    if(is_color){
+        fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_RGB);
     }
-    fp->set_data(rgb_data, 3*mat.cols*mat.rows);
+    else{
+        fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_GRAYSCALE);
+    }
+    fp->set_data((const char*)mat.data, mat.total() * mat.elemSize());
 }
 

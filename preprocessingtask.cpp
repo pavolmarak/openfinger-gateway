@@ -50,7 +50,6 @@ void PreprocessingTask::cvMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Finger
         fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_GRAYSCALE);
     }
     fp->set_data((const char*)mat.data, mat.total() * mat.elemSize());
-
 }
 
 //void PreprocessingTask::cvColorMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp)

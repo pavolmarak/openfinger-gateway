@@ -18,7 +18,7 @@ public:
     explicit ExtractionTask(QObject *parent = nullptr);
     void start();
     void preprocess_and_extract(cv::Mat&);
-    void cvColorMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp);
+    void cvMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp, bool is_color);
 
     void waitForPreprocessingComplete();
     void waitForExtractionComplete();
