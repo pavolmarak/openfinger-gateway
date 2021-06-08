@@ -53,24 +53,24 @@ void PreprocessingTask::cvMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Finger
 
 }
 
-void PreprocessingTask::cvColorMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp)
-{
-    fp->set_width(mat.cols);
-    fp->set_height(mat.rows);
-    fp->set_resolution(500);
-    fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_RGB);
-    uchar * rgb_data = new uchar[3*mat.cols*mat.rows];
-    int cnt=0;
-    for(int i=0; i<mat.rows;i++){
-        for(int j=0; j<mat.cols;j++){
-            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[2]; // R
-            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[1]; // G
-            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[0]; // B
-        }
-    }
-    fp->set_data(rgb_data, 3*mat.cols*mat.rows);
+//void PreprocessingTask::cvColorMatToProtoFingerprint(cv::Mat &mat, OpenFinger::Fingerprint *fp)
+//{
+//    fp->set_width(mat.cols);
+//    fp->set_height(mat.rows);
+//    fp->set_resolution(500);
+//    fp->set_color(OpenFinger::Fingerprint_Colorspace::Fingerprint_Colorspace_RGB);
+//    uchar * rgb_data = new uchar[3*mat.cols*mat.rows];
+//    int cnt=0;
+//    for(int i=0; i<mat.rows;i++){
+//        for(int j=0; j<mat.cols;j++){
+//            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[2]; // R
+//            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[1]; // G
+//            rgb_data[cnt++] = mat.at<cv::Vec3b>(i,j)[0]; // B
+//        }
+//    }
+//    fp->set_data(rgb_data, 3*mat.cols*mat.rows);
 
-}
+//}
 
 void PreprocessingTask::preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS results)
 {
@@ -121,14 +121,6 @@ void PreprocessingTask::preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS results)
     result->mutable_info()->clear();
     result->mutable_info()->append("Fingerprint image skeleton.");
     this->cvMatToProtoFingerprint(resp_img,result->mutable_fingerprint());
-
-    // RGB orientation map
-    resp_img = results.imgOrientationMap;
-    result = this->response.add_results();
-    result->mutable_info()->clear();
-    result->mutable_info()->append("RGB orientation map.");
-    this->cvColorMatToProtoFingerprint(resp_img,result->mutable_fingerprint());
-
 
     emit preprocessingResponseReady(this->response, this->socket);
 }
