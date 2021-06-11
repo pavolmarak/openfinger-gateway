@@ -2,7 +2,7 @@
 #define REGISTRATIONTASK_H
 
 #include <QObject>
-#include <QTcpSocket>
+#include <QSslSocket>
 #include <QEventLoop>
 #include "Fingerprint.pb.h"
 #include "RegistrationRequest.pb.h"
@@ -32,13 +32,13 @@ public:
 
     OpenFinger::RegistrationRequest request;
     OpenFinger::RegistrationResponse response;
-    QTcpSocket *socket;
+    QSslSocket *socket;
 
 private slots:
     void preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS);
     void extractionDoneSlot(QVector<MINUTIA>);
 signals:
-    void registrationResponseReady(OpenFinger::RegistrationResponse&, QTcpSocket *);
+    void registrationResponseReady(OpenFinger::RegistrationResponse&, QSslSocket *);
     void preprocessingComplete();
     void extractionComplete();
 };

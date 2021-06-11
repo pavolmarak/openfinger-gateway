@@ -2,7 +2,7 @@
 #define PREPROCESSINGTASK_H
 
 #include <QObject>
-#include <QTcpSocket>
+#include <QSslSocket>
 #include "Fingerprint.pb.h"
 #include "PreprocessingRequest.pb.h"
 #include "PreprocessingResponse.pb.h"
@@ -22,13 +22,13 @@ public:
     Preprocessing preprocessor;
     OpenFinger::PreprocessingRequest request;
     OpenFinger::PreprocessingResponse response;
-    QTcpSocket *socket;
+    QSslSocket *socket;
 
 private slots:
     void preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS);
 
 signals:
-    void preprocessingResponseReady(OpenFinger::PreprocessingResponse&, QTcpSocket *);
+    void preprocessingResponseReady(OpenFinger::PreprocessingResponse&, QSslSocket *);
 
 };
 

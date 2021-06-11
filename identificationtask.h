@@ -2,7 +2,7 @@
 #define IDENTIFICATIONTASK_H
 
 #include <QObject>
-#include <QTcpSocket>
+#include <QSslSocket>
 #include <QEventLoop>
 #include "Fingerprint.pb.h"
 #include "IdentificationRequest.pb.h"
@@ -37,13 +37,13 @@ public:
 
     OpenFinger::IdentificationRequest request;
     OpenFinger::IdentificationResponse response;
-    QTcpSocket *socket;
+    QSslSocket *socket;
 private slots:
     void preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS);
     void extractionDoneSlot(QVector<MINUTIA>);
     void identificationDoneSlot(bool, QString, float);
 signals:
-    void identificationResponseReady(OpenFinger::IdentificationResponse&, QTcpSocket *);
+    void identificationResponseReady(OpenFinger::IdentificationResponse&, QSslSocket *);
     void preprocessingComplete();
     void extractionComplete();
 };

@@ -5,14 +5,14 @@ OpenFingerGateway::OpenFingerGateway(QObject *parent) : QObject(parent)
 
 }
 
-OpenFingerGateway::OpenFingerGateway(QString host, quint16 port){
-    this->host = host;
-    //this->host = "suprema";
+OpenFingerGateway::OpenFingerGateway(QString ip, quint16 port){
+    this->host = ip;
+    this->port = port;
 
-    connect(    &(this->server),
-                &QTcpServer::newConnection,
+    connect(    &(this->ssl_server),
+                &SslServer::serverReadyReadSsl,
                 this,
-                &OpenFingerGateway::newConnectionSlot);
+                &OpenFingerGateway::serverReadyReadSslSlot);
 
     connect(    &(this->preproc_task),
                 &PreprocessingTask::preprocessingResponseReady,
@@ -25,14 +25,14 @@ OpenFingerGateway::OpenFingerGateway(QString host, quint16 port){
                 &OpenFingerGateway::extractionResponseReadySlot);
 
     connect(    &(this->verify_task),
-                qOverload<OpenFinger::VerificationResponse, QTcpSocket *>(&VerificationTask::verificationResponseReady),
+                qOverload<OpenFinger::VerificationResponse, QSslSocket *>(&VerificationTask::verificationResponseReady),
                 this,
-                qOverload<OpenFinger::VerificationResponse, QTcpSocket *>(&OpenFingerGateway::verificationResponseReadySlot));
+                qOverload<OpenFinger::VerificationResponse, QSslSocket *>(&OpenFingerGateway::verificationResponseReadySlot));
 
     connect(    &(this->verify_task),
-                qOverload<OpenFinger::VerificationResponseOlejarnikova, QTcpSocket *>(&VerificationTask::verificationResponseReady),
+                qOverload<OpenFinger::VerificationResponseOlejarnikova, QSslSocket *>(&VerificationTask::verificationResponseReady),
                 this,
-                qOverload<OpenFinger::VerificationResponseOlejarnikova, QTcpSocket *>(&OpenFingerGateway::verificationResponseReadySlot));
+                qOverload<OpenFinger::VerificationResponseOlejarnikova, QSslSocket *>(&OpenFingerGateway::verificationResponseReadySlot));
 
     connect(    &(this->register_task),
                 &RegistrationTask::registrationResponseReady,
@@ -44,111 +44,69 @@ OpenFingerGateway::OpenFingerGateway(QString host, quint16 port){
                 this,
                 &OpenFingerGateway::identificationResponseReadySlot);
 
-    if(!this->server.listen(QHostAddress(host), port)){
-        qDebug() << "Server failed to listen on IP:" << host << "and port:" << port ;
-        exit(EXIT_FAILURE);
-    }
-    else{
-        qDebug() << "Server is listening on IP:" << host << "and port:" << port;
-    }
+    this->ssl_server.setIp(ip);
+    this->ssl_server.setPort(port);
+    this->ssl_server.startListening();
 }
 
-void OpenFingerGateway::newConnectionSlot()
+void OpenFingerGateway::serverReadyReadSslSlot(QSslSocket *socket, QByteArray *data)
 {
-    QMap<QTcpSocket*,QByteArray>::iterator i = this->server_sockets.insert(this->server.nextPendingConnection(),{});
-    connect(    i.key(),
-                &QTcpSocket::readyRead,
-                this,
-                &OpenFingerGateway::readyReadSlot);
-
-    connect(    i.key(),
-                &QTcpSocket::disconnected,
-                this,
-                &OpenFingerGateway::disconnectedSlot);
-
-    connect(    i.key(),
-                &QTcpSocket::errorOccurred,
-                this,
-                &OpenFingerGateway::errorOccurredSlot);
-
-    qDebug() << "\nServer: NEW CONNECTION" << i.key()
-             << "from" << i.key()->peerAddress()
-             << ", socket descriptor:" << i.key()->socketDescriptor();
-    qDebug() << "Server: number of connected sockets is" << this->server_sockets.size();
+    readFromClient(socket,data);
 }
 
-void OpenFingerGateway::disconnectedSlot()
+void OpenFingerGateway::readFromClient(QSslSocket* socket, QByteArray *data)
 {
-    QTcpSocket * sender_socket = qobject_cast<QTcpSocket*>(sender());
-    qDebug() << "Server" << sender_socket
-             << ": disconnected.";
-    this->server_sockets.remove(sender_socket);
-    qDebug() << "Server: number of connected sockets is" << this->server_sockets.size();
-}
-
-void OpenFingerGateway::errorOccurredSlot(QAbstractSocket::SocketError error)
-{
-    QTcpSocket * sender_socket = qobject_cast<QTcpSocket*>(sender());
-    qDebug() << "Server" << sender_socket
-             << ": error occured "
-             << error;
-}
-
-void OpenFingerGateway::readyReadSlot()
-{
-    QTcpSocket * sender_socket = qobject_cast<QTcpSocket*>(sender());
-    QByteArray& data = this->server_sockets[sender_socket];
-    QByteArray tmp = sender_socket->readAll();
-    data += tmp;
-    qDebug()    << "Server" << sender_socket
+    QByteArray tmp = socket->readAll();
+    *data += tmp;
+    qDebug()    << "Server" << socket
                 << ": read" << tmp.size() << "B from"
-                << sender_socket->peerAddress().toString();
+                << socket->peerAddress().toString();
 
     OpenFinger::Wrapper wrap;
-    bool parse_status = wrap.ParseFromString(data.toStdString());
+    bool parse_status = wrap.ParseFromString(data->toStdString());
 
     if(parse_status){
-        qDebug() << "Server" << sender_socket
+        qDebug() << "Server" << socket
                  << ": wrapper parsed successfully.";
         switch(wrap.body_case()){
         case OpenFinger::Wrapper::kPreprocRequest:
-            handlePreprocessingRequest(wrap, sender_socket, data);
+            handlePreprocessingRequest(wrap, socket, *data);
             break;
         case OpenFinger::Wrapper::kPreprocResponse:
             break;
         case OpenFinger::Wrapper::kExtractRequest:
-            handleExtractionRequest(wrap, sender_socket, data);
+            handleExtractionRequest(wrap, socket, *data);
             break;
         case OpenFinger::Wrapper::kExtractResponse:
             break;
         case OpenFinger::Wrapper::kVerifyRequest:
-            handleVerificationRequestRemoteDB(wrap, sender_socket, data);
+            handleVerificationRequestRemoteDB(wrap, socket, *data);
             break;
         case OpenFinger::Wrapper::kVerifyResponse:
             break;
         case OpenFinger::Wrapper::kVerifyRequestOlejarnikova:
-            handleVerificationRequestLocalDB(wrap, sender_socket, data);
+            handleVerificationRequestLocalDB(wrap, socket, *data);
             break;
         case OpenFinger::Wrapper::kVerifyResponseOlejarnikova:
             break;
         case OpenFinger::Wrapper::kIdentifyRequest:
-            handleIdentificationRequest(wrap, sender_socket, data);
+            handleIdentificationRequest(wrap, socket, *data);
             break;
         case OpenFinger::Wrapper::kIdentifyResponse:
             break;
         case OpenFinger::Wrapper::kRegisterRequest:
-            handleRegistrationRequest(wrap, sender_socket, data);
+            handleRegistrationRequest(wrap, socket, *data);
             break;
         case OpenFinger::Wrapper::kRegisterResponse:
             break;
         default:
             break;
         }
-        data.clear();
+        data->clear();
     }
 }
 
-void OpenFingerGateway::handlePreprocessingRequest(OpenFinger::Wrapper& wrap, QTcpSocket* socket, QByteArray& data)
+void OpenFingerGateway::handlePreprocessingRequest(OpenFinger::Wrapper& wrap, QSslSocket* socket, QByteArray& data)
 {
     this->preproc_task.request = wrap.preproc_request();
     this->preproc_task.socket = socket;
@@ -173,7 +131,7 @@ void OpenFingerGateway::handlePreprocessingRequest(OpenFinger::Wrapper& wrap, QT
     this->preproc_task.start();
 }
 
-void OpenFingerGateway::handleExtractionRequest(OpenFinger::Wrapper& wrap, QTcpSocket* socket, QByteArray& data)
+void OpenFingerGateway::handleExtractionRequest(OpenFinger::Wrapper& wrap, QSslSocket* socket, QByteArray& data)
 {
     this->extract_task.request = wrap.extract_request();
     this->extract_task.socket = socket;
@@ -193,7 +151,7 @@ void OpenFingerGateway::handleExtractionRequest(OpenFinger::Wrapper& wrap, QTcpS
     this->extract_task.start();
 }
 
-void OpenFingerGateway::handleVerificationRequestRemoteDB(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
+void OpenFingerGateway::handleVerificationRequestRemoteDB(OpenFinger::Wrapper &wrap, QSslSocket *socket, QByteArray &data)
 {
     this->verify_task.requestRemoteDB = wrap.verify_request();
     this->verify_task.socket = socket;
@@ -216,7 +174,7 @@ void OpenFingerGateway::handleVerificationRequestRemoteDB(OpenFinger::Wrapper &w
     this->verify_task.startRemoteDB(this->host);
 }
 
-void OpenFingerGateway::handleVerificationRequestLocalDB(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
+void OpenFingerGateway::handleVerificationRequestLocalDB(OpenFinger::Wrapper &wrap, QSslSocket *socket, QByteArray &data)
 {
     this->verify_task.requestLocalDB = wrap.verify_request_olejarnikova();
     this->verify_task.socket = socket;
@@ -239,7 +197,7 @@ void OpenFingerGateway::handleVerificationRequestLocalDB(OpenFinger::Wrapper &wr
     this->verify_task.startLocalDB(this->host);
 }
 
-void OpenFingerGateway::handleIdentificationRequest(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
+void OpenFingerGateway::handleIdentificationRequest(OpenFinger::Wrapper &wrap, QSslSocket *socket, QByteArray &data)
 {
     this->identify_task.request = wrap.identify_request();
     this->identify_task.socket = socket;
@@ -262,7 +220,7 @@ void OpenFingerGateway::handleIdentificationRequest(OpenFinger::Wrapper &wrap, Q
     this->identify_task.start(this->host);
 }
 
-void OpenFingerGateway::handleRegistrationRequest(OpenFinger::Wrapper &wrap, QTcpSocket *socket, QByteArray &data)
+void OpenFingerGateway::handleRegistrationRequest(OpenFinger::Wrapper &wrap, QSslSocket *socket, QByteArray &data)
 {
     this->register_task.request = wrap.register_request();
     this->register_task.socket = socket;
@@ -285,7 +243,8 @@ void OpenFingerGateway::handleRegistrationRequest(OpenFinger::Wrapper &wrap, QTc
     this->register_task.start();
 }
 
-void OpenFingerGateway::preprocessingResponseReadySlot(OpenFinger::PreprocessingResponse &response, QTcpSocket *socket)
+
+void OpenFingerGateway::preprocessingResponseReadySlot(OpenFinger::PreprocessingResponse &response, QSslSocket *socket)
 {
     std::string str;
     OpenFinger::Wrapper wrap;
@@ -303,7 +262,8 @@ void OpenFingerGateway::preprocessingResponseReadySlot(OpenFinger::Preprocessing
                 << "images";
 }
 
-void OpenFingerGateway::extractionResponseReadySlot(OpenFinger::ExtractionResponse &response, QTcpSocket *socket)
+
+void OpenFingerGateway::extractionResponseReadySlot(OpenFinger::ExtractionResponse &response, QSslSocket *socket)
 {
     std::string str;
     OpenFinger::Wrapper wrap;
@@ -320,7 +280,8 @@ void OpenFingerGateway::extractionResponseReadySlot(OpenFinger::ExtractionRespon
                << "Level-2 features extracted.";
 }
 
-void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationResponse response, QTcpSocket *socket)
+
+void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationResponse response, QSslSocket *socket)
 {
     std::string str;
     OpenFinger::Wrapper wrap;
@@ -339,7 +300,7 @@ void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationRe
                << resp->score();
 }
 
-void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationResponseOlejarnikova response, QTcpSocket *socket)
+void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationResponseOlejarnikova response, QSslSocket *socket)
 {
     std::string str;
     OpenFinger::Wrapper wrap;
@@ -358,7 +319,7 @@ void OpenFingerGateway::verificationResponseReadySlot(OpenFinger::VerificationRe
                << resp->score();
 }
 
-void OpenFingerGateway::identificationResponseReadySlot(OpenFinger::IdentificationResponse &response, QTcpSocket *socket)
+void OpenFingerGateway::identificationResponseReadySlot(OpenFinger::IdentificationResponse &response, QSslSocket *socket)
 {
     std::string str;
     OpenFinger::Wrapper wrap;
@@ -377,7 +338,7 @@ void OpenFingerGateway::identificationResponseReadySlot(OpenFinger::Identificati
                << resp->fingerprint_id();
 }
 
-void OpenFingerGateway::registrationResponseReadySlot(OpenFinger::RegistrationResponse &response, QTcpSocket *socket)
+void OpenFingerGateway::registrationResponseReadySlot(OpenFinger::RegistrationResponse &response, QSslSocket *socket)
 {
     std::string str;
     OpenFinger::Wrapper wrap;

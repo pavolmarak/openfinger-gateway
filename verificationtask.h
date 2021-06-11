@@ -2,7 +2,7 @@
 #define VERIFICATIONTASK_H
 
 #include <QObject>
-#include <QTcpSocket>
+#include <QSslSocket>
 #include <QEventLoop>
 #include "Fingerprint.pb.h"
 #include "VerificationRequest.pb.h"
@@ -43,15 +43,15 @@ public:
     OpenFinger::VerificationResponse responseRemoteDB;
     OpenFinger::VerificationRequestOlejarnikova requestLocalDB;
     OpenFinger::VerificationResponseOlejarnikova responseLocalDB;
-    QTcpSocket *socket;
+    QSslSocket *socket;
 private slots:
     void preprocessingDoneSlot(PREPROCESSING_ALL_RESULTS);
     void extractionDoneSlot(QVector<MINUTIA>);
     void verificationDoneRemoteSlot(bool, float score);
     void verificationDoneLocalSlot(bool, float score);
 signals:
-    void verificationResponseReady(OpenFinger::VerificationResponse, QTcpSocket *);
-    void verificationResponseReady(OpenFinger::VerificationResponseOlejarnikova, QTcpSocket *);
+    void verificationResponseReady(OpenFinger::VerificationResponse, QSslSocket *);
+    void verificationResponseReady(OpenFinger::VerificationResponseOlejarnikova, QSslSocket *);
 
     void preprocessingComplete();
     void extractionComplete();

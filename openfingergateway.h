@@ -2,8 +2,7 @@
 #define OPENFINGERGATEWAY_H
 
 #include <QObject>
-#include <QTcpServer>
-#include <QTcpSocket>
+#include <QSslSocket>
 #include <QMap>
 
 // OpenFinger protobufs
@@ -35,16 +34,20 @@
 #include "verificationtask.h"
 #include "identificationtask.h"
 
+// SSL server
+#include "sslserver.h"
+
 class OpenFingerGateway : public QObject
 {
     Q_OBJECT
 public:
     explicit OpenFingerGateway(QObject *parent = nullptr);
     OpenFingerGateway(QString host, quint16 port);
+    void readFromClient(QSslSocket*, QByteArray*);
 private:
     QString host;
-    QTcpServer server;
-    QMap<QTcpSocket*,QByteArray> server_sockets;
+    quint16 port;
+    SslServer ssl_server;
 
     PreprocessingTask preproc_task;
     ExtractionTask extract_task;
@@ -52,26 +55,23 @@ private:
     RegistrationTask register_task;
     IdentificationTask identify_task;
 
-    void handlePreprocessingRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
-    void handleExtractionRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
-    void handleVerificationRequestRemoteDB(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
-    void handleVerificationRequestLocalDB(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
-    void handleRegistrationRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
-    void handleIdentificationRequest(OpenFinger::Wrapper&, QTcpSocket* socket, QByteArray& data);
+    void handlePreprocessingRequest(OpenFinger::Wrapper&, QSslSocket* socket, QByteArray& data);
+    void handleExtractionRequest(OpenFinger::Wrapper&, QSslSocket* socket, QByteArray& data);
+    void handleVerificationRequestRemoteDB(OpenFinger::Wrapper&, QSslSocket* socket, QByteArray& data);
+    void handleVerificationRequestLocalDB(OpenFinger::Wrapper&, QSslSocket* socket, QByteArray& data);
+    void handleRegistrationRequest(OpenFinger::Wrapper&, QSslSocket* socket, QByteArray& data);
+    void handleIdentificationRequest(OpenFinger::Wrapper&, QSslSocket* socket, QByteArray& data);
 
 
 signals:
 private slots:
-    void newConnectionSlot();
-    void readyReadSlot();
-    void disconnectedSlot();
-    void errorOccurredSlot(QAbstractSocket::SocketError);
-    void preprocessingResponseReadySlot(OpenFinger::PreprocessingResponse& response, QTcpSocket * socket);
-    void extractionResponseReadySlot(OpenFinger::ExtractionResponse& response, QTcpSocket * socket);
-    void verificationResponseReadySlot(OpenFinger::VerificationResponse response, QTcpSocket * socket);
-    void verificationResponseReadySlot(OpenFinger::VerificationResponseOlejarnikova response, QTcpSocket * socket);
-    void registrationResponseReadySlot(OpenFinger::RegistrationResponse& response, QTcpSocket * socket);
-    void identificationResponseReadySlot(OpenFinger::IdentificationResponse& response, QTcpSocket * socket);
+    void serverReadyReadSslSlot(QSslSocket *socket, QByteArray *data);
+    void preprocessingResponseReadySlot(OpenFinger::PreprocessingResponse& response, QSslSocket * socket);
+    void extractionResponseReadySlot(OpenFinger::ExtractionResponse& response, QSslSocket * socket);
+    void verificationResponseReadySlot(OpenFinger::VerificationResponse response, QSslSocket * socket);
+    void verificationResponseReadySlot(OpenFinger::VerificationResponseOlejarnikova response, QSslSocket * socket);
+    void registrationResponseReadySlot(OpenFinger::RegistrationResponse& response, QSslSocket * socket);
+    void identificationResponseReadySlot(OpenFinger::IdentificationResponse& response, QSslSocket * socket);
 
 };
 

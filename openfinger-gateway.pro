@@ -32,6 +32,7 @@ SOURCES += \
         openfingergateway.cpp \
         preprocessingtask.cpp \
         registrationtask.cpp \
+        sslserver.cpp \
         verificationtask.cpp
 
 # Default rules for deployment.
@@ -61,6 +62,7 @@ HEADERS += \
     openfingergateway.h \
     preprocessingtask.h \
     registrationtask.h \
+    sslserver.h \
     verificationtask.h
 
 

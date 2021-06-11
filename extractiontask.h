@@ -2,7 +2,7 @@
 #define EXTRACTIONTASK_H
 
 #include <QObject>
-#include <QTcpSocket>
+#include <QSslSocket>
 #include <QEventLoop>
 #include "Fingerprint.pb.h"
 #include "ExtractionRequest.pb.h"
@@ -28,7 +28,7 @@ public:
 
     OpenFinger::ExtractionRequest request;
     OpenFinger::ExtractionResponse response;
-    QTcpSocket *socket;
+    QSslSocket *socket;
     PREPROCESSING_ALL_RESULTS preproc_results_all;
     QVector<MINUTIA> extract_result;
     cv::Mat extract_image;
@@ -43,7 +43,7 @@ private slots:
     void extractionDoneSlot(cv::Mat);
 
 signals:
-     void extractionResponseReady(OpenFinger::ExtractionResponse&, QTcpSocket *);
+     void extractionResponseReady(OpenFinger::ExtractionResponse&, QSslSocket *);
      void preprocessingComplete();
      void extractionComplete();
      void extractionImageComplete();
